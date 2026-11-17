@@ -1,22 +1,22 @@
-const API_KEY = "AIzaSyBWa5rLRaTodYzW4RtJkPcZ2Me6oCc_cvw";
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+const API_URL = import.meta.env.VITE_AI_API_URL;
 
 async function llamarGemini(prompt) {
+  if (!API_URL) {
+    throw new Error("La integración de IA requiere configurar un backend propio en VITE_AI_API_URL. No coloques una clave privada de Gemini en el frontend.");
+  }
+
   const response = await fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 1024,
-      }
-    })
+    body: JSON.stringify({ prompt })
   });
+
+  if (!response.ok) {
+    throw new Error("No fue posible obtener una respuesta del servicio de IA.");
+  }
+
   const data = await response.json();
-  if (data.error) throw new Error(data.error.message);
-  const texto = data.candidates[0].content.parts[0].text;
-  return texto;
+  return data.text || data.respuesta || "";
 }
 
 export async function analizarFlujo(pacientes) {
@@ -46,23 +46,25 @@ Escribe en español mexicano, tono cálido y tranquilizador.`;
 }
 
 export async function analizarSintomas(sintomas) {
-  const prompt = `Eres un asistente médico de triaje para México.
+  const prompt = `Eres un asistente informativo de salud para México.
+No diagnostiques ni sustituyas a un profesional de salud. Si hay señales de emergencia, indica buscar atención de emergencia.
 Analiza estos síntomas: "${sintomas}"
 
 Responde SOLO con este JSON exacto:
 {"nivel":"LEVE","recomendacion":"texto","motivo":"texto","siguientePaso":"texto"}
 
-nivel solo puede ser: URGENTE, MODERADO o LEVE
+nivel solo puede ser: URGENTE, MODERADO o LEVE.
 Todo en español de México.`;
   return await llamarGemini(prompt);
 }
 
 export async function consultarKiosco(categoria, detalle) {
-  const prompt = `Eres un kiosco de salud en México.
-Categoría: "${categoria}", Síntomas: "${detalle}"
+  const prompt = `Eres un kiosco informativo de salud en México.
+Categoría: "${categoria}", descripción: "${detalle}"
 
+No recomiendes medicamentos ni dosis. No diagnostiques. Indica cuándo consultar a personal de salud.
 Responde SOLO con este JSON exacto:
-{"orientacion":"texto","medicamento":"texto o No aplica","advertencia":"texto"}
+{"orientacion":"texto","medicamento":"Consulta con personal de salud","advertencia":"texto"}
 
 Todo en español de México, lenguaje simple.`;
   return await llamarGemini(prompt);
