@@ -37,174 +37,103 @@ export default function Kiosco() {
   }
 
   const urlPaciente = pacienteRegistrado
-  ? `http://192.168.100.19:5173/paciente/${pacienteRegistrado.codigo}`
-  : "";
+    ? `${window.location.origin}/paciente/${pacienteRegistrado.codigo}`
+    : "";
 
   return (
-    <div style={{ maxWidth: "700px", margin: "0 auto", padding: "32px 24px" }}>
-      <div style={{ marginBottom: "28px" }}>
-        <h1 style={{ fontSize: "24px", fontWeight: 800, color: "#0e7490" }}>🏥 Kiosco de Registro</h1>
-        <p style={{ color: "#64748b", fontSize: "14px", marginTop: "4px" }}>Registra al paciente y genera su código de seguimiento</p>
-      </div>
+    <main className="kiosk-page">
+      <header className="page-heading">
+        <span className="section-kicker">REGISTRO DE PACIENTES</span>
+        <h1>Kiosco de registro</h1>
+        <p>Completa los datos y selecciona los estudios para generar el seguimiento de la visita.</p>
+      </header>
 
-      <div style={{ display: "flex", gap: "8px", marginBottom: "28px" }}>
+      <div className="stepper" aria-label={`Paso ${paso} de 3`}>
         {["Datos del paciente", "Estudios solicitados", "Código QR"].map((label, i) => (
-          <div key={i} style={{ flex: 1, textAlign: "center" }}>
-            <div style={{
-              height: "4px", borderRadius: "2px", marginBottom: "6px",
-              background: paso > i + 1 ? "#059669" : paso === i + 1 ? "#06b6d4" : "#e2e8f0",
-            }} />
-            <p style={{ fontSize: "11px", fontWeight: 600, color: paso === i + 1 ? "#0e7490" : "#94a3b8" }}>{label}</p>
+          <div className="step-item" key={label}>
+            <div className={paso >= i + 1 ? "step-line reached" : "step-line"} />
+            <span className={paso === i + 1 ? "step-label current" : paso > i + 1 ? "step-label done" : "step-label"}>{label}</span>
           </div>
         ))}
       </div>
 
-      <div style={{ background: "white", borderRadius: "20px", padding: "28px", boxShadow: "0 4px 20px rgba(0,0,0,0.08)", border: "1px solid #e2e8f0" }}>
-
+      <section className="kiosk-card">
         {paso === 1 && (
           <div>
-            <p style={{ fontSize: "15px", fontWeight: 700, color: "#1e293b", marginBottom: "20px" }}>Información del paciente</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
-              <div style={{ gridColumn: "1 / -1" }}>
-                <label style={labelStyle}>Nombre completo</label>
-                <input name="nombre" value={form.nombre} onChange={handleChange}
-                  placeholder="Ej: María García López" style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>Edad</label>
-                <input name="edad" type="number" value={form.edad} onChange={handleChange}
-                  placeholder="35" style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>Sexo</label>
-                <select name="sexo" value={form.sexo} onChange={handleChange} style={inputStyle}>
-                  <option value="">Seleccionar</option>
-                  <option value="femenino">Femenino</option>
-                  <option value="masculino">Masculino</option>
-                  <option value="otro">Otro</option>
-                </select>
-              </div>
-              <div style={{ gridColumn: "1 / -1" }}>
-                <label style={labelStyle}>Teléfono (opcional)</label>
-                <input name="telefono" value={form.telefono} onChange={handleChange}
-                  placeholder="55 1234 5678" style={inputStyle} />
-              </div>
+            <div className="form-section-title"><span>01</span><div><h2>Información del paciente</h2><p>Los campos marcados son necesarios para continuar.</p></div></div>
+            <div className="form-grid">
+              <div className="field full"><label>Nombre completo <b>*</b></label><input name="nombre" value={form.nombre} onChange={handleChange} placeholder="Ej. María García López" autoComplete="name" /></div>
+              <div className="field"><label>Edad <b>*</b></label><input name="edad" type="number" min="0" max="120" value={form.edad} onChange={handleChange} placeholder="Ej. 35" /></div>
+              <div className="field"><label>Sexo</label><select name="sexo" value={form.sexo} onChange={handleChange}><option value="">Seleccionar</option><option value="femenino">Femenino</option><option value="masculino">Masculino</option><option value="otro">Otro</option></select></div>
+              <div className="field full"><label>Teléfono <span>(opcional)</span></label><input name="telefono" value={form.telefono} onChange={handleChange} placeholder="Número de contacto" autoComplete="tel" /></div>
             </div>
-            <button onClick={() => {
-              if (!form.nombre || !form.edad) return alert("Nombre y edad son obligatorios.");
-              setPaso(2);
-            }} style={btnStyle}>
-              Siguiente →
-            </button>
+            <div className="form-actions"><button className="action-primary" onClick={() => { if (!form.nombre || !form.edad) return alert("Nombre y edad son obligatorios."); setPaso(2); }}>Continuar <span>→</span></button></div>
           </div>
         )}
 
         {paso === 2 && (
           <div>
-            <p style={{ fontSize: "15px", fontWeight: 700, color: "#1e293b", marginBottom: "20px" }}>Selecciona los estudios</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "24px" }}>
+            <div className="form-section-title"><span>02</span><div><h2>Estudios solicitados</h2><p>Selecciona todos los estudios indicados para esta visita.</p></div></div>
+            <div className="study-grid">
               {estudiosDisponibles.map((e) => {
                 const seleccionado = form.estudios.includes(e.id);
                 return (
-                  <div key={e.id} onClick={() => toggleEstudio(e.id)} style={{
-                    padding: "14px 16px", borderRadius: "12px", cursor: "pointer",
-                    border: `2px solid ${seleccionado ? "#06b6d4" : "#e2e8f0"}`,
-                    background: seleccionado ? "#ecfeff" : "white",
-                    transition: "all 0.2s",
-                  }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <p style={{ fontSize: "13px", fontWeight: 700, color: seleccionado ? "#0e7490" : "#1e293b" }}>{e.nombre}</p>
-                      <span style={{
-                        width: "18px", height: "18px", borderRadius: "50%", flexShrink: 0,
-                        background: seleccionado ? "#06b6d4" : "#e2e8f0",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                      }}>
-                        {seleccionado && <span style={{ color: "white", fontSize: "11px" }}>✓</span>}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>{e.area} · ~{e.duracion} min</p>
-                    <p style={{ fontSize: "11px", color: "#f97316", marginTop: "4px" }}>⚠ {e.instruccion}</p>
-                  </div>
+                  <button type="button" key={e.id} onClick={() => toggleEstudio(e.id)} className={seleccionado ? "study-option selected" : "study-option"} aria-pressed={seleccionado}>
+                    <span className="study-check">{seleccionado ? "✓" : "+"}</span>
+                    <strong>{e.nombre}</strong>
+                    <small>{e.area} · aprox. {e.duracion} min</small>
+                    <span className="study-instruction">Nota: {e.instruccion}</span>
+                  </button>
                 );
               })}
             </div>
-            <div style={{ display: "flex", gap: "12px" }}>
-              <button onClick={() => setPaso(1)} style={{ ...btnStyle, background: "#f1f5f9", color: "#64748b", boxShadow: "none", flex: 0.4 }}>
-                ← Atrás
-              </button>
-              <button onClick={handleRegistrar} style={{ ...btnStyle, flex: 1 }}>
-                Registrar y generar QR →
-              </button>
+            <p className="selection-count">{form.estudios.length} estudio(s) seleccionado(s)</p>
+            <div className="form-actions split">
+              <button className="action-secondary" onClick={() => setPaso(1)}>← Atrás</button>
+              <button className="action-primary" onClick={handleRegistrar} disabled={form.estudios.length === 0}>Registrar paciente <span>→</span></button>
             </div>
           </div>
         )}
 
         {paso === 3 && pacienteRegistrado && (
-          <div style={{ textAlign: "center" }}>
-            <div style={{
-              width: "56px", height: "56px", borderRadius: "50%",
-              background: "#dcfce7", margin: "0 auto 16px",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: "28px",
-            }}>✅</div>
-            <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#059669", marginBottom: "4px" }}>
-              ¡Paciente registrado!
-            </h2>
-            <p style={{ fontSize: "14px", color: "#64748b", marginBottom: "8px" }}>
-              {pacienteRegistrado.nombre}
-            </p>
-            <div style={{
-              display: "inline-block", background: "#f0f9ff", border: "2px dashed #06b6d4",
-              borderRadius: "12px", padding: "8px 20px", marginBottom: "24px",
-            }}>
-              <p style={{ fontSize: "24px", fontWeight: 800, color: "#0e7490", letterSpacing: "2px" }}>
-                {pacienteRegistrado.codigo}
-              </p>
+          <div className="success-view">
+            <div className="success-mark">✓</div>
+            <span className="section-kicker">REGISTRO COMPLETADO</span>
+            <h2>Paciente registrado</h2>
+            <p className="success-name">{pacienteRegistrado.nombre}</p>
+            <div className="patient-code"><small>CÓDIGO DE SEGUIMIENTO</small><strong>{pacienteRegistrado.codigo}</strong></div>
+            <div className="qr-panel">
+              <p>Escanea este código para consultar el itinerario de la visita.</p>
+              <div className="qr-frame"><QRCodeSVG value={urlPaciente} size={176} /></div>
+              <small className="qr-url">{urlPaciente}</small>
             </div>
-
-            <div style={{ background: "#f8fafc", borderRadius: "16px", padding: "20px", marginBottom: "20px" }}>
-              <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px", fontWeight: 600 }}>
-                Escanea el QR para seguir tu visita
-              </p>
-              <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
-                <QRCodeSVG value={urlPaciente} size={180} />
-              </div>
-              <p style={{ fontSize: "11px", color: "#94a3b8", wordBreak: "break-all" }}>{urlPaciente}</p>
+            <div className="registered-studies">
+              <h3>Estudios programados</h3>
+              {pacienteRegistrado.estudios.map((e, i) => <div className="registered-study" key={e.id || i}><span>{i + 1}</span><div><strong>{e.nombre}</strong><small>{e.area} · aprox. {e.duracion} min</small></div></div>)}
             </div>
-
-            <div style={{ marginBottom: "20px", textAlign: "left" }}>
-              <p style={{ fontSize: "13px", fontWeight: 700, color: "#1e293b", marginBottom: "10px" }}>Estudios programados:</p>
-              {pacienteRegistrado.estudios.map((e, i) => (
-                <div key={i} style={{
-                  display: "flex", alignItems: "center", gap: "10px",
-                  padding: "10px 14px", borderRadius: "10px", marginBottom: "8px",
-                  background: i === 0 ? "#ecfeff" : "#f8fafc",
-                  border: `1px solid ${i === 0 ? "#a5f3fc" : "#e2e8f0"}`,
-                }}>
-                  <span style={{
-                    width: "24px", height: "24px", borderRadius: "50%", flexShrink: 0,
-                    background: i === 0 ? "#06b6d4" : "#e2e8f0",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: "11px", fontWeight: 700, color: i === 0 ? "white" : "#94a3b8",
-                  }}>{i + 1}</span>
-                  <div>
-                    <p style={{ fontSize: "13px", fontWeight: 600, color: "#1e293b" }}>{e.nombre}</p>
-                    <p style={{ fontSize: "11px", color: "#64748b" }}>{e.area} · ~{e.duracion} min</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <button onClick={handleNuevo} style={btnStyle}>
-              Registrar nuevo paciente
-            </button>
+            <button className="action-primary new-patient" onClick={handleNuevo}>Registrar otro paciente <span>→</span></button>
           </div>
         )}
-      </div>
-    </div>
+      </section>
+
+      <style>{`
+        .kiosk-page { width: min(820px, calc(100% - 48px)); margin: 0 auto; padding: 38px 0 64px; }
+        .kiosk-page .page-heading { margin-bottom: 25px; }
+        .stepper { display: flex; gap: 14px; margin-bottom: 22px; }
+        .step-item { flex: 1; min-width: 0; }.step-line { height: 4px; border-radius: 8px; background: #dce8e8; margin-bottom: 9px; }.step-line.reached { background: #087f8c; }
+        .step-label { color: #8a9b9e; font-size: 11px; font-weight: 600; }.step-label.current, .step-label.done { color: #075b66; }
+        .kiosk-card { padding: 30px; border: 1px solid #dce8e8; border-radius: 20px; background: white; box-shadow: 0 12px 32px rgba(17,63,69,.06); }
+        .form-section-title { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 25px; }.form-section-title > span { width: 35px; height: 35px; display: grid; place-items: center; flex: 0 0 35px; border-radius: 11px; background: #e5f4f3; color: #087f8c; font: 800 12px 'Manrope', sans-serif; }
+        .form-section-title h2 { margin: 0 0 4px; font: 800 17px 'Manrope', sans-serif; }.form-section-title p { color: #829397; font-size: 12px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }.field { min-width: 0; }.field.full { grid-column: 1 / -1; }.field label { display: block; margin-bottom: 7px; color: #476166; font-size: 11px; font-weight: 700; }.field label b { color: #c46a50; }.field label span { color: #91a0a3; font-weight: 400; }
+        .field input, .field select { width: 100%; min-height: 45px; padding: 11px 13px; border: 1px solid #dce8e8; border-radius: 10px; background: #fbfdfd; color: #18333a; font-size: 13px; }.field input:focus, .field select:focus { outline: 3px solid rgba(8,127,140,.12); border-color: #65afb0; }
+        .form-actions { display: flex; justify-content: flex-end; margin-top: 27px; }.form-actions.split { justify-content: space-between; gap: 12px; }
+        .action-primary, .action-secondary { min-height: 44px; padding: 0 19px; display: inline-flex; align-items: center; justify-content: center; gap: 14px; border: 0; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; }.action-primary { background: #087f8c; color: white; }.action-primary:hover { background: #075b66; }.action-primary:disabled { opacity: .45; cursor: not-allowed; }.action-secondary { background: #edf4f4; color: #476166; }
+        .study-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }.study-option { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 17px; border: 1px solid #dce8e8; border-radius: 13px; background: #fff; text-align: left; cursor: pointer; transition: .18s; }.study-option:hover { border-color: #83bdbb; background: #f8fcfc; }.study-option.selected { border: 1.5px solid #087f8c; background: #f0f9f8; }.study-check { position: absolute; top: 13px; right: 13px; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 7px; background: #edf4f4; color: #71868a; font-size: 15px; }.selected .study-check { background: #087f8c; color: white; }.study-option strong { padding-right: 25px; color: #25464c; font-size: 12px; }.study-option small { color: #829397; font-size: 10px; }.study-instruction { margin-top: 4px; color: #9a7552; font-size: 10px; line-height: 1.5; }.selection-count { margin-top: 14px; color: #71868a; font-size: 11px; }
+        .success-view { max-width: 520px; margin: 0 auto; text-align: center; }.success-mark { width: 52px; height: 52px; display: grid; place-items: center; margin: 0 auto 15px; border-radius: 50%; background: #e8f5ee; color: #39856b; font-size: 26px; font-weight: 700; }.success-view h2 { margin: 7px 0 4px; font: 800 23px 'Manrope', sans-serif; }.success-name { color: #71868a; font-size: 13px; }.patient-code { display: inline-flex; flex-direction: column; gap: 4px; margin: 19px 0; padding: 10px 24px; border: 1px dashed #83bdbb; border-radius: 12px; background: #f4faf9; }.patient-code small { color: #71868a; font-size: 9px; font-weight: 700; letter-spacing: 1px; }.patient-code strong { color: #075b66; font: 800 25px 'Manrope', sans-serif; letter-spacing: 2px; }
+        .qr-panel { padding: 19px; border: 1px solid #e4eeee; border-radius: 15px; background: #f8fbfb; }.qr-panel > p { margin-bottom: 15px; color: #71868a; font-size: 12px; }.qr-frame { display: inline-flex; padding: 12px; border-radius: 12px; background: white; border: 1px solid #e5eeee; }.qr-url { display: block; margin-top: 12px; color: #8b9b9e; font-size: 10px; overflow-wrap: anywhere; }.registered-studies { margin: 23px 0; text-align: left; }.registered-studies h3 { margin-bottom: 11px; font: 800 13px 'Manrope', sans-serif; }.registered-study { display: flex; align-items: center; gap: 11px; padding: 11px 12px; border-bottom: 1px solid #edf2f2; }.registered-study > span { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 8px; background: #e5f4f3; color: #087f8c; font-size: 11px; font-weight: 700; }.registered-study div { display: flex; flex-direction: column; gap: 3px; }.registered-study strong { color: #36545a; font-size: 11px; }.registered-study small { color: #829397; font-size: 10px; }.new-patient { width: 100%; }
+        @media(max-width:600px) { .kiosk-page { width: calc(100% - 32px); padding-top: 27px; }.kiosk-card { padding: 21px 17px; }.stepper { gap: 7px; }.step-label { font-size: 9px; }.form-grid, .study-grid { grid-template-columns: 1fr; }.field.full { grid-column: auto; }.form-actions.split { flex-direction: column-reverse; }.form-actions.split button { width: 100%; } }
+      `}</style>
+    </main>
   );
 }
-
-const labelStyle = { display: "block", fontSize: "11px", fontWeight: 700, color: "#64748b", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" };
-const inputStyle = { width: "100%", padding: "10px 14px", borderRadius: "10px", border: "1px solid #e2e8f0", fontSize: "14px", color: "#1e293b", outline: "none", background: "#f8fafc" };
-const btnStyle = { width: "100%", padding: "12px", borderRadius: "12px", background: "linear-gradient(135deg, #0e7490, #06b6d4)", color: "white", fontWeight: 700, fontSize: "15px", border: "none", cursor: "pointer", boxShadow: "0 4px 12px rgba(6,182,212,0.3)" };
