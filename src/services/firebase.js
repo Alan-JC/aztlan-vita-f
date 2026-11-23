@@ -21,19 +21,14 @@ export async function actualizarPaciente(codigo, datos) {
   await updateDoc(doc(db, "pacientes", codigo), datos);
 }
 
-export function escucharPacientes(callback) {
+export function escucharPacientes(callback, onError) {
   return onSnapshot(collection(db, "pacientes"), (snapshot) => {
-    const pacientes = snapshot.docs.map((d) => d.data());
-    callback(pacientes);
-  });
+    callback(snapshot.docs.map((d) => d.data()));
+  }, onError);
 }
 
-export function escucharPaciente(codigo, callback) {
+export function escucharPaciente(codigo, callback, onError) {
   return onSnapshot(doc(db, "pacientes", codigo), (snapshot) => {
-    if (snapshot.exists()) {
-      callback(snapshot.data());
-    } else {
-      callback(null);
-    }
-  });
+    callback(snapshot.exists() ? snapshot.data() : null);
+  }, onError);
 }
