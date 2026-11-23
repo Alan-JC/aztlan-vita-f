@@ -1,5 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { escucharPacientes, guardarPaciente, actualizarPaciente } from "../services/firebase";
+import { createContext, useContext, useState } from "react";
 
 const AppContext = createContext(null);
 
@@ -12,65 +11,70 @@ export const ESTUDIOS_DISPONIBLES = [
   { id: "ecg", nombre: "Electrocardiograma", area: "Cardiología", duracion: 25, instruccion: "Ropa cómoda, sin cremas en el torso" },
 ];
 
+function leer() {
+  try { return JSON.parse(localStorage.getItem("aztlan_pacientes") || "[]"); } catch { return []; }
+}
+
+function guardar(p) {
+  localStorage.setItem("aztlan_pacientes", JSON.stringify(p));
+}
+
 export function AppProvider({ children }) {
-  const [pacientes, setPacientes] = useState([]);
-  const [errorDatos, setErrorDatos] = useState("");
+  const [pacientes, setPacientes] = useState(leer);
 
-  useEffect(() => {
-    const unsub = escucharPacientes((datos) => {
-      setPacientes(datos);
-      setErrorDatos("");
-    }, (error) => {
-      console.error("Error al sincronizar pacientes:", error);
-      setErrorDatos("No se pudo conectar con la base de datos.");
-    });
-    return () => unsub();
-  }, []);
-
-  async function registrarPaciente(datos) {
+  function registrarPaciente(datos) {
     const codigo = `SD-${String(Math.floor(Math.random() * 9000) + 1000)}`;
     const estudiosConEstado = datos.estudios.map((id, index) => {
       const estudio = ESTUDIOS_DISPONIBLES.find((e) => e.id === id);
       return { ...estudio, estado: index === 0 ? "en_espera" : "pendiente", iniciadoEn: null, completadoEn: null };
     });
     const nuevo = { ...datos, codigo, estudios: estudiosConEstado, estado: "en_espera", registradoEn: new Date().toISOString() };
-    await guardarPaciente(nuevo);
+    const actualizados = [...leer(), nuevo];
+    guardar(actualizados);
+    setPacientes(actualizados);
     return nuevo;
   }
 
-  async function avanzarEstudio(codigo) {
-    const paciente = pacientes.find((p) => p.codigo === codigo);
-    if (!paciente) return;
-    const estudios = [...paciente.estudios];
-    const idx = estudios.findIndex((e) => e.estado === "en_espera" || e.estado === "en_proceso");
-    if (idx === -1) return;
-    estudios[idx] = { ...estudios[idx], estado: "completado", completadoEn: new Date().toISOString() };
-    if (idx + 1 < estudios.length) estudios[idx + 1] = { ...estudios[idx + 1], estado: "en_espera", iniciadoEn: new Date().toISOString() };
-    const todos = estudios.every((e) => e.estado === "completado");
-    await actualizarPaciente(codigo, { estudios, estado: todos ? "completado" : "en_proceso" });
+  function avanzarEstudio(codigo) {
+    const actualizados = leer().map((p) => {
+      if (p.codigo !== codigo) return p;
+      const estudios = [...p.estudios];
+      const idx = estudios.findIndex((e) => e.estado === "en_espera" || e.estado === "en_proceso");
+      if (idx === -1) return p;
+      estudios[idx] = { ...estudios[idx], estado: "completado", completadoEn: new Date().toISOString() };
+      if (idx + 1 < estudios.length) estudios[idx + 1] = { ...estudios[idx + 1], estado: "en_espera", iniciadoEn: new Date().toISOString() };
+      const todos = estudios.every((e) => e.estado === "completado");
+      return { ...p, estudios, estado: todos ? "completado" : "en_proceso" };
+    });
+    guardar(actualizados);
+    setPacientes(actualizados);
   }
 
-  async function iniciarEstudio(codigo) {
-    const paciente = pacientes.find((p) => p.codigo === codigo);
-    if (!paciente) return;
-    const estudios = [...paciente.estudios];
-    const idx = estudios.findIndex((e) => e.estado === "en_espera");
-    if (idx === -1) return;
-    estudios[idx] = { ...estudios[idx], estado: "en_proceso", iniciadoEn: new Date().toISOString() };
-    await actualizarPaciente(codigo, { estudios, estado: "en_proceso" });
+  function iniciarEstudio(codigo) {
+    const actualizados = leer().map((p) => {
+      if (p.codigo !== codigo) return p;
+      const estudios = [...p.estudios];
+      const idx = estudios.findIndex((e) => e.estado === "en_espera");
+      if (idx === -1) return p;
+      estudios[idx] = { ...estudios[idx], estado: "en_proceso", iniciadoEn: new Date().toISOString() };
+      return { ...p, estudios, estado: "en_proceso" };
+    });
+    guardar(actualizados);
+    setPacientes(actualizados);
   }
 
   function getPaciente(codigo) {
-    return pacientes.find((p) => p.codigo === codigo);
+    return leer().find((p) => p.codigo === codigo);
   }
 
-  async function limpiarCompletados() {
-    // Retención/destrucción de datos debe definirse con controles adecuados en una aplicación real.
-    setErrorDatos("La eliminación masiva de pacientes completados está deshabilitada en esta versión.");
+  function limpiarCompletados() {
+    const actualizados = leer().filter((p) => p.estado !== "completado");
+    guardar(actualizados);
+    setPacientes(actualizados);
   }
 
   return (
-    <AppContext.Provider value={{ pacientes, errorDatos, estudiosDisponibles: ESTUDIOS_DISPONIBLES, registrarPaciente, avanzarEstudio, iniciarEstudio, getPaciente, limpiarCompletados }}>
+    <AppContext.Provider value={{ pacientes, estudiosDisponibles: ESTUDIOS_DISPONIBLES, registrarPaciente, avanzarEstudio, iniciarEstudio, getPaciente, limpiarCompletados }}>
       {children}
     </AppContext.Provider>
   );
