@@ -3,10 +3,10 @@ import { useParams } from "react-router-dom";
 import { escucharPaciente } from "../services/firebase";
 
 const ESTADO_CONFIG = {
-  pendiente: { color: "#e2e8f0", texto: "#94a3b8", label: "Pendiente" },
-  en_espera: { color: "#fef9c3", texto: "#854d0e", label: "En espera" },
-  en_proceso: { color: "#dbeafe", texto: "#1e40af", label: "En proceso" },
-  completado: { color: "#dcfce7", texto: "#166534", label: "Completado" },
+  pendiente: { color: "#edf2f2", texto: "#829397", label: "Pendiente" },
+  en_espera: { color: "#fff4df", texto: "#986b27", label: "En espera" },
+  en_proceso: { color: "#eaf2fa", texto: "#426d9b", label: "En proceso" },
+  completado: { color: "#eaf5ef", texto: "#39856b", label: "Completado" },
 };
 
 export default function Paciente() {
@@ -16,149 +16,74 @@ export default function Paciente() {
 
   useEffect(() => {
     const unsub = escucharPaciente(codigo, (data) => {
-      setPaciente(data);
+      if (data) {
+        setPaciente(data);
+      } else {
+        try {
+          const pacientesLocales = JSON.parse(localStorage.getItem("aztlan_pacientes") || "[]");
+          setPaciente(pacientesLocales.find((p) => p.codigo === codigo) || null);
+        } catch {
+          setPaciente(null);
+        }
+      }
       setCargando(false);
     });
     return () => unsub();
   }, [codigo]);
 
   if (cargando) {
-    return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f0f9ff" }}>
-        <div style={{ textAlign: "center" }}>
-          <p style={{ fontSize: "48px", marginBottom: "16px" }}>⏳</p>
-          <p style={{ fontSize: "18px", fontWeight: 700, color: "#0e7490" }}>Cargando tu visita...</p>
-        </div>
-      </div>
-    );
+    return <div className="patient-state"><div className="state-symbol">···</div><h2>Preparando tu seguimiento</h2><p>Estamos consultando la información de tu visita.</p><style>{patientStyles}</style></div>;
   }
 
   if (!paciente) {
-    return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f0f9ff" }}>
-        <div style={{ textAlign: "center" }}>
-          <p style={{ fontSize: "48px", marginBottom: "16px" }}>🔍</p>
-          <p style={{ fontSize: "18px", fontWeight: 700, color: "#0e7490" }}>Código no encontrado</p>
-          <p style={{ fontSize: "14px", color: "#64748b", marginTop: "8px" }}>Verifica tu código con recepción</p>
-        </div>
-      </div>
-    );
+    return <div className="patient-state"><div className="state-symbol">?</div><h2>No encontramos este código</h2><p>Verifica el código de seguimiento con el personal de recepción.</p><style>{patientStyles}</style></div>;
   }
 
   const estudioActual = paciente.estudios.find((e) => e.estado === "en_espera" || e.estado === "en_proceso");
   const completados = paciente.estudios.filter((e) => e.estado === "completado").length;
   const total = paciente.estudios.length;
-  const progreso = Math.round((completados / total) * 100);
+  const progreso = total ? Math.round((completados / total) * 100) : 0;
   const tiempoTotal = paciente.estudios.filter((e) => e.estado !== "completado").reduce((a, b) => a + b.duracion, 0);
   const todosCompletos = paciente.estado === "completado";
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #ecfeff 0%, #f0f9ff 100%)" }}>
-      <div style={{ background: "linear-gradient(135deg, #0e7490, #06b6d4)", padding: "24px 20px 64px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-          <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "rgba(255,255,255,0.2)", padding: "4px" }}>
-            <img src="/aztlan-logo.JPG" alt="Logo" style={{ width: "100%", objectFit: "contain" }} />
-          </div>
-          <div>
-            <p style={{ color: "white", fontWeight: 700, fontSize: "15px", lineHeight: 1 }}>Aztlan Vita F</p>
-            <p style={{ color: "#a5f3fc", fontSize: "11px" }}>Tu visita en tiempo real</p>
-          </div>
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "6px", background: "rgba(255,255,255,0.15)", padding: "4px 10px", borderRadius: "999px" }}>
-            <span style={{ width: "6px", height: "6px", background: "#4ade80", borderRadius: "50%", display: "inline-block" }}></span>
-            <p style={{ color: "white", fontSize: "11px", fontWeight: 600 }}>En vivo</p>
-          </div>
-        </div>
-        <p style={{ color: "#cffafe", fontSize: "13px", marginBottom: "4px" }}>Bienvenido,</p>
-        <h1 style={{ color: "white", fontSize: "24px", fontWeight: 800, marginBottom: "8px" }}>{paciente.nombre}</h1>
-        <div style={{ display: "inline-block", background: "rgba(255,255,255,0.2)", borderRadius: "8px", padding: "4px 14px" }}>
-          <p style={{ color: "white", fontSize: "14px", fontWeight: 700, letterSpacing: "2px" }}>{paciente.codigo}</p>
-        </div>
+    <main className="tracking-page">
+      <header className="tracking-header">
+        <div className="tracking-brand"><span className="tracking-mark">AV</span><div><strong>Aztlán Vita F</strong><small>Seguimiento de tu visita</small></div></div>
+        <span className="live-indicator"><i /> Actualización en vivo</span>
+        <div className="tracking-intro"><span className="section-kicker">TU EXPERIENCIA DE ATENCIÓN</span><h1>Hola, {paciente.nombre}</h1><p>Consulta el avance de tus estudios y conoce cuál es el siguiente paso.</p><span className="tracking-code">{paciente.codigo}</span></div>
+      </header>
+
+      <div className="tracking-content">
+        <section className="progress-card">
+          {todosCompletos ? <div className="visit-complete"><span>✓</span><div><h2>Tu visita ha finalizado</h2><p>Todos los estudios programados aparecen como completados. Acércate a recepción para conocer los siguientes pasos.</p></div></div> : <>
+            <div className="progress-heading"><div><span className="section-kicker">RESUMEN</span><h2>Progreso de tu visita</h2></div><strong>{progreso}%</strong></div>
+            <div className="tracking-progress"><span style={{ width: `${progreso}%` }} /></div>
+            <div className="progress-foot"><span>{completados} de {total} estudios completados</span><span>Tiempo estimado restante: ~{tiempoTotal} min</span></div>
+          </>}
+        </section>
+
+        {!todosCompletos && estudioActual && <section className="next-step-card"><span className="section-kicker">{estudioActual.estado === "en_proceso" ? "ATENCIÓN EN CURSO" : "TU SIGUIENTE PASO"}</span><h2>{estudioActual.nombre}</h2><div className="destination-row"><span className="destination-icon">⌖</span><div><small>Área indicada</small><strong>{estudioActual.area}</strong></div></div><div className="instruction-row"><strong>Antes de continuar</strong><p>{estudioActual.instruccion}</p></div></section>}
+
+        <section className="itinerary-card"><div className="itinerary-heading"><div><span className="section-kicker">RECORRIDO</span><h2>Itinerario de estudios</h2></div><span>{total} en total</span></div>
+          <div className="itinerary-list">{paciente.estudios.map((e, i) => { const config = ESTADO_CONFIG[e.estado] || ESTADO_CONFIG.pendiente; return <div className="itinerary-item" key={e.id || i}><div className="timeline"><span className={e.estado === "completado" ? "timeline-dot done" : e.estado === "en_proceso" ? "timeline-dot active" : "timeline-dot"}>{e.estado === "completado" ? "✓" : i + 1}</span>{i < total - 1 && <i />}</div><div className="itinerary-detail"><div className="itinerary-title"><strong>{e.nombre}</strong><span style={{ background: config.color, color: config.texto }}>{config.label}</span></div><p>{e.area} · aprox. {e.duracion} min</p></div></div>; })}</div>
+        </section>
+
+        {!todosCompletos && <aside className="help-note"><span>i</span><div><strong>¿Tienes alguna duda?</strong><p>El personal de la clínica puede orientarte sobre la preparación y el recorrido de tus estudios.</p></div></aside>}
+        <footer className="tracking-footer">Aztlán Vita F <span>·</span> Información de seguimiento de tu visita</footer>
       </div>
 
-      <div style={{ margin: "-40px 16px 0", position: "relative" }}>
-        <div style={{ background: "white", borderRadius: "20px", padding: "20px", boxShadow: "0 8px 30px rgba(0,0,0,0.1)", marginBottom: "16px" }}>
-          {todosCompletos ? (
-            <div style={{ textAlign: "center", padding: "16px 0" }}>
-              <p style={{ fontSize: "48px", marginBottom: "12px" }}>🎉</p>
-              <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#059669", marginBottom: "8px" }}>¡Visita completada!</h2>
-              <p style={{ fontSize: "14px", color: "#64748b" }}>Todos tus estudios han sido realizados. Pasa a recepción por tus resultados.</p>
-            </div>
-          ) : (
-            <>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                <p style={{ fontSize: "13px", fontWeight: 700, color: "#1e293b" }}>Progreso de tu visita</p>
-                <p style={{ fontSize: "13px", fontWeight: 700, color: "#0891b2" }}>{progreso}%</p>
-              </div>
-              <div style={{ background: "#f1f5f9", borderRadius: "999px", height: "8px", marginBottom: "8px" }}>
-                <div style={{ height: "8px", borderRadius: "999px", background: "linear-gradient(90deg, #0e7490, #06b6d4)", width: `${progreso}%`, transition: "width 0.5s" }} />
-              </div>
-              <p style={{ fontSize: "12px", color: "#94a3b8" }}>{completados} de {total} estudios · ~{tiempoTotal} min restantes</p>
-            </>
-          )}
-        </div>
-
-        {!todosCompletos && estudioActual && (
-          <div style={{ background: "linear-gradient(135deg, #0e7490, #06b6d4)", borderRadius: "20px", padding: "20px", marginBottom: "16px", boxShadow: "0 8px 20px rgba(6,182,212,0.3)" }}>
-            <p style={{ color: "#a5f3fc", fontSize: "11px", fontWeight: 600, marginBottom: "6px" }}>
-              {estudioActual.estado === "en_proceso" ? "🔵 EN PROCESO AHORA" : "📍 SIGUIENTE PASO"}
-            </p>
-            <h2 style={{ color: "white", fontSize: "20px", fontWeight: 800, marginBottom: "14px" }}>{estudioActual.nombre}</h2>
-            <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: "12px", padding: "12px 16px", marginBottom: "10px" }}>
-              <p style={{ color: "#cffafe", fontSize: "11px", fontWeight: 600, marginBottom: "2px" }}>📍 Dirígete a</p>
-              <p style={{ color: "white", fontSize: "16px", fontWeight: 700 }}>{estudioActual.area}</p>
-            </div>
-            <div style={{ background: "rgba(255,165,0,0.2)", borderRadius: "12px", padding: "12px 16px" }}>
-              <p style={{ color: "#fde68a", fontSize: "11px", fontWeight: 600, marginBottom: "2px" }}>⚠️ Instrucción</p>
-              <p style={{ color: "white", fontSize: "13px" }}>{estudioActual.instruccion}</p>
-            </div>
-          </div>
-        )}
-
-        <div style={{ background: "white", borderRadius: "20px", padding: "20px", boxShadow: "0 4px 16px rgba(0,0,0,0.06)", marginBottom: "16px" }}>
-          <p style={{ fontSize: "14px", fontWeight: 700, color: "#1e293b", marginBottom: "16px" }}>Tu itinerario de hoy</p>
-          {paciente.estudios.map((e, i) => {
-            const config = ESTADO_CONFIG[e.estado] || ESTADO_CONFIG.pendiente;
-            return (
-              <div key={i} style={{ display: "flex", gap: "12px", marginBottom: i < paciente.estudios.length - 1 ? "12px" : 0 }}>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <div style={{
-                    width: "32px", height: "32px", borderRadius: "50%", flexShrink: 0,
-                    background: config.color,
-                    border: `2px solid ${e.estado === "en_proceso" ? "#06b6d4" : "transparent"}`,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: "13px", fontWeight: 700, color: config.texto,
-                  }}>
-                    {e.estado === "completado" ? "✓" : i + 1}
-                  </div>
-                  {i < paciente.estudios.length - 1 && (
-                    <div style={{ width: "2px", flex: 1, background: "#e2e8f0", margin: "4px 0", minHeight: "20px" }} />
-                  )}
-                </div>
-                <div style={{ flex: 1, paddingBottom: i < paciente.estudios.length - 1 ? "12px" : 0 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <p style={{ fontSize: "14px", fontWeight: 700, color: e.estado === "pendiente" ? "#94a3b8" : "#1e293b" }}>{e.nombre}</p>
-                    <span style={{ fontSize: "10px", fontWeight: 700, padding: "3px 8px", borderRadius: "999px", background: config.color, color: config.texto }}>
-                      {config.label}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: "12px", color: "#94a3b8", marginTop: "2px" }}>{e.area} · ~{e.duracion} min</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {!todosCompletos && (
-          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "16px", padding: "16px", marginBottom: "24px" }}>
-            <p style={{ fontSize: "12px", fontWeight: 700, color: "#92400e", marginBottom: "4px" }}>💡 Mientras esperas</p>
-            <p style={{ fontSize: "13px", color: "#78350f", lineHeight: 1.6 }}>
-              {estudioActual?.instruccion
-                ? `Recuerda: ${estudioActual.instruccion}. Si tienes dudas acércate a recepción.`
-                : "Tu visita está casi lista. Gracias por tu paciencia."}
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
+      <style>{patientStyles}</style>
+    </main>
   );
 }
+
+const patientStyles = `
+  .tracking-page { min-height: 100vh; background: #f4f8f8; color: #18333a; }.tracking-header { position: relative; padding: 25px max(24px, calc((100% - 760px)/2)) 65px; background: #075b66; color: white; }.tracking-brand { display: flex; align-items: center; gap: 11px; }.tracking-mark { width: 39px; height: 39px; display: grid; place-items: center; border-radius: 12px; background: rgba(255,255,255,.13); color: white; font: 800 13px 'Manrope', sans-serif; }.tracking-brand div { display: flex; flex-direction: column; gap: 2px; }.tracking-brand strong { font: 800 14px 'Manrope', sans-serif; }.tracking-brand small { color: #b7d8d5; font-size: 10px; }.live-indicator { position: absolute; top: 34px; right: max(24px, calc((100% - 760px)/2)); display: inline-flex; align-items: center; gap: 7px; color: #c6e5e1; font-size: 10px; }.live-indicator i { width: 7px; height: 7px; border-radius: 50%; background: #8ed5b2; }.tracking-intro { max-width: 760px; margin: 43px auto 0; }.tracking-intro .section-kicker { color: #9bd8d2; }.tracking-intro h1 { margin: 9px 0 7px; color: white; font: 800 clamp(26px, 5vw, 34px) 'Manrope', sans-serif; letter-spacing: -.8px; }.tracking-intro > p { max-width: 490px; color: #c5e1df; font-size: 12px; line-height: 1.7; }.tracking-code { display: inline-block; margin-top: 17px; padding: 7px 12px; border: 1px solid rgba(255,255,255,.23); border-radius: 8px; color: white; font: 700 12px 'Manrope', sans-serif; letter-spacing: 1.5px; }
+  .tracking-content { position: relative; width: min(760px, calc(100% - 32px)); margin: -35px auto 0; }.progress-card, .itinerary-card { padding: 22px; border: 1px solid #dce8e8; border-radius: 17px; background: white; box-shadow: 0 10px 28px rgba(17,63,69,.06); }.progress-heading, .itinerary-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; }.progress-heading h2, .itinerary-heading h2 { margin: 3px 0 0; font: 800 17px 'Manrope', sans-serif; }.progress-heading > strong { color: #087f8c; font: 800 27px 'Manrope', sans-serif; }.tracking-progress { height: 8px; margin: 19px 0 10px; overflow: hidden; border-radius: 9px; background: #edf3f3; }.tracking-progress span { display: block; height: 100%; border-radius: inherit; background: #087f8c; transition: width .3s; }.progress-foot { display: flex; justify-content: space-between; gap: 10px; color: #829397; font-size: 10px; }.visit-complete { display: flex; align-items: center; gap: 14px; }.visit-complete > span { width: 43px; height: 43px; flex: 0 0 43px; display: grid; place-items: center; border-radius: 13px; background: #eaf5ef; color: #39856b; font-size: 22px; }.visit-complete h2 { margin: 0 0 5px; font: 800 16px 'Manrope', sans-serif; }.visit-complete p { color: #71868a; font-size: 11px; line-height: 1.6; }
+  .next-step-card { margin-top: 14px; padding: 22px; border-radius: 17px; background: #087f8c; color: white; box-shadow: 0 10px 25px rgba(8,127,140,.15); }.next-step-card .section-kicker { color: #b6e1dd; }.next-step-card h2 { margin: 7px 0 17px; color: white; font: 800 20px 'Manrope', sans-serif; }.destination-row { display: flex; align-items: center; gap: 11px; padding: 12px; border-radius: 11px; background: rgba(255,255,255,.12); }.destination-icon { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 9px; background: rgba(255,255,255,.14); font-size: 20px; }.destination-row div { display: flex; flex-direction: column; gap: 3px; }.destination-row small { color: #b6e1dd; font-size: 9px; }.destination-row strong { color: white; font-size: 12px; }.instruction-row { margin-top: 10px; padding: 12px; border: 1px solid rgba(255,255,255,.19); border-radius: 11px; }.instruction-row strong { color: #d9efec; font-size: 10px; }.instruction-row p { margin-top: 4px; color: white; font-size: 11px; line-height: 1.6; }
+  .itinerary-card { margin-top: 14px; }.itinerary-heading { margin-bottom: 21px; }.itinerary-heading > span { color: #829397; font-size: 10px; }.itinerary-list { display: flex; flex-direction: column; }.itinerary-item { display: flex; gap: 13px; min-height: 61px; }.timeline { display: flex; flex-direction: column; align-items: center; width: 27px; flex: 0 0 27px; }.timeline-dot { z-index: 1; width: 27px; height: 27px; display: grid; place-items: center; border: 1px solid #dce8e8; border-radius: 50%; background: #f4f8f8; color: #829397; font-size: 10px; font-weight: 700; }.timeline-dot.done { border-color: #d7eade; background: #eaf5ef; color: #39856b; }.timeline-dot.active { border: 2px solid #087f8c; background: #e5f4f3; color: #075b66; }.timeline > i { width: 1px; flex: 1; min-height: 22px; background: #e1ebeb; }.itinerary-detail { flex: 1; padding: 3px 0 16px; }.itinerary-title { display: flex; align-items: center; justify-content: space-between; gap: 9px; }.itinerary-title strong { color: #36545a; font-size: 11px; }.itinerary-title span { padding: 4px 8px; border-radius: 7px; font-size: 9px; font-weight: 700; white-space: nowrap; }.itinerary-detail p { margin-top: 4px; color: #91a0a3; font-size: 10px; }
+  .help-note { display: flex; gap: 11px; margin-top: 14px; padding: 15px; border: 1px solid #e5e9d8; border-radius: 13px; background: #fbfcf5; }.help-note > span { width: 23px; height: 23px; flex: 0 0 23px; display: grid; place-items: center; border-radius: 50%; background: #f0f1df; color: #8c8a54; font-weight: 700; font-size: 12px; }.help-note strong { color: #5e674b; font-size: 10px; }.help-note p { margin-top: 4px; color: #858a70; font-size: 10px; line-height: 1.6; }.tracking-footer { padding: 24px 0 30px; color: #9aa9ab; text-align: center; font-size: 9px; }.tracking-footer span { margin: 0 5px; }
+  .patient-state { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 25px; background: #f4f8f8; text-align: center; }.state-symbol { width: 54px; height: 54px; display: grid; place-items: center; margin-bottom: 16px; border-radius: 17px; background: #e5f4f3; color: #087f8c; font: 800 24px 'Manrope', sans-serif; }.patient-state h2 { margin: 0 0 7px; font: 800 18px 'Manrope', sans-serif; }.patient-state p { color: #829397; font-size: 12px; }
+  @media(max-width:560px) { .tracking-header { padding: 20px 20px 62px; }.live-indicator { top: 29px; right: 20px; font-size: 0; }.tracking-intro { margin-top: 35px; }.tracking-content { width: calc(100% - 28px); }.progress-card, .itinerary-card { padding: 17px; }.progress-foot { flex-direction: column; gap: 4px; }.itinerary-title { align-items: flex-start; }.itinerary-title strong { max-width: 60%; line-height: 1.5; } }
+`;
