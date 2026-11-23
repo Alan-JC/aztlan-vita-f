@@ -6,7 +6,7 @@ export default function Kiosco() {
   const { registrarPaciente, estudiosDisponibles } = useApp();
   const [paso, setPaso] = useState(1);
   const [form, setForm] = useState({ nombre: "", edad: "", sexo: "", telefono: "", estudios: [] });
-  const [pacienteRegistrado, setPacienteRegistrado] = useState(null);
+  const [pacienteRegistrado, setPacienteRegistrado] = useState(null);\n  const [errorRegistro, setErrorRegistro] = useState("");\n  const [guardando, setGuardando] = useState(false);
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -20,7 +20,7 @@ export default function Kiosco() {
     });
   }
 
-  function handleRegistrar() {
+  async function handleRegistrar() {
     if (!form.nombre || !form.edad || form.estudios.length === 0) {
       alert("Completa nombre, edad y selecciona al menos un estudio.");
       return;
@@ -87,10 +87,10 @@ export default function Kiosco() {
                 );
               })}
             </div>
-            <p className="selection-count">{form.estudios.length} estudio(s) seleccionado(s)</p>
+            <p className="selection-count">{form.estudios.length} estudio(s) seleccionado(s)</p>{errorRegistro && <p role="alert" style={{ color: "#a33", fontSize: "12px", marginTop: "12px" }}>{errorRegistro}</p>}
             <div className="form-actions split">
               <button className="action-secondary" onClick={() => setPaso(1)}>← Atrás</button>
-              <button className="action-primary" onClick={handleRegistrar} disabled={form.estudios.length === 0}>Registrar paciente <span>→</span></button>
+              <button className="action-primary" onClick={handleRegistrar} disabled={form.estudios.length === 0 || guardando}>{guardando ? "Guardando..." : "Registrar paciente"} <span>→</span></button>
             </div>
           </div>
         )}
