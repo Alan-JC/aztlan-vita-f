@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useApp } from "../context/AppContext";
 import { useParams } from "react-router-dom";
-import { escucharPaciente } from "../services/firebase";
+
 
 const ESTADO_CONFIG = {
   pendiente: { color: "#edf2f2", texto: "#829397", label: "Pendiente" },
@@ -11,29 +11,11 @@ const ESTADO_CONFIG = {
 
 export default function Paciente() {
   const { codigo } = useParams();
-  const [paciente, setPaciente] = useState(null);
-  const [cargando, setCargando] = useState(true);\n  const [errorConexion, setErrorConexion] = useState("");
-
-  useEffect(() => {
-    const unsub = escucharPaciente(codigo, (data) => {
-      setPaciente(data);
-      setCargando(false);
-      setErrorConexion("");
-    }, (error) => {
-      console.error("Error al consultar seguimiento:", error);
-      setPaciente(null);
-      setCargando(false);
-      setErrorConexion("No se pudo conectar al servicio de seguimiento. Intenta nuevamente más tarde.");
-    });
-    return () => unsub();
-  }, [codigo]);
-
-  if (cargando) {
-    return <div className="patient-state"><div className="state-symbol">···</div><h2>Preparando tu seguimiento</h2><p>Estamos consultando la información de tu visita.</p><style>{patientStyles}</style></div>;
-  }
+  const { pacientes } = useApp();
+  const paciente = pacientes.find((p) => p.codigo === codigo);
 
   if (!paciente) {
-    return <div className="patient-state"><div className="state-symbol">?</div><h2>{errorConexion ? "Seguimiento no disponible" : "No encontramos este código"}</h2><p>{errorConexion || "Verifica el código de seguimiento con el personal de recepción."}</p><style>{patientStyles}</style></div>;
+    return <div className="patient-state"><div className="state-symbol">?</div><h2>No encontramos este código</h2><p>Verifica el código de seguimiento con el personal de recepción.</p><style>{patientStyles}</style></div>;
   }
 
   const estudioActual = paciente.estudios.find((e) => e.estado === "en_espera" || e.estado === "en_proceso");
