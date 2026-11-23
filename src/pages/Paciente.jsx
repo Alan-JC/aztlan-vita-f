@@ -12,21 +12,18 @@ const ESTADO_CONFIG = {
 export default function Paciente() {
   const { codigo } = useParams();
   const [paciente, setPaciente] = useState(null);
-  const [cargando, setCargando] = useState(true);
+  const [cargando, setCargando] = useState(true);\n  const [errorConexion, setErrorConexion] = useState("");
 
   useEffect(() => {
     const unsub = escucharPaciente(codigo, (data) => {
-      if (data) {
-        setPaciente(data);
-      } else {
-        try {
-          const pacientesLocales = JSON.parse(localStorage.getItem("aztlan_pacientes") || "[]");
-          setPaciente(pacientesLocales.find((p) => p.codigo === codigo) || null);
-        } catch {
-          setPaciente(null);
-        }
-      }
+      setPaciente(data);
       setCargando(false);
+      setErrorConexion("");
+    }, (error) => {
+      console.error("Error al consultar seguimiento:", error);
+      setPaciente(null);
+      setCargando(false);
+      setErrorConexion("No se pudo conectar al servicio de seguimiento. Intenta nuevamente más tarde.");
     });
     return () => unsub();
   }, [codigo]);
@@ -36,7 +33,7 @@ export default function Paciente() {
   }
 
   if (!paciente) {
-    return <div className="patient-state"><div className="state-symbol">?</div><h2>No encontramos este código</h2><p>Verifica el código de seguimiento con el personal de recepción.</p><style>{patientStyles}</style></div>;
+    return <div className="patient-state"><div className="state-symbol">?</div><h2>{errorConexion ? "Seguimiento no disponible" : "No encontramos este código"}</h2><p>{errorConexion || "Verifica el código de seguimiento con el personal de recepción."}</p><style>{patientStyles}</style></div>;
   }
 
   const estudioActual = paciente.estudios.find((e) => e.estado === "en_espera" || e.estado === "en_proceso");
