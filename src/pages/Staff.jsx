@@ -9,7 +9,7 @@ const ESTADO_COLOR = {
 };
 
 export default function Staff() {
-  const { pacientes, avanzarEstudio, iniciarEstudio, limpiarCompletados } = useApp();
+  const { pacientes, errorDatos, avanzarEstudio, iniciarEstudio, limpiarCompletados } = useApp();\n  const [errorOperacion, setErrorOperacion] = useState("");\n\n  async function ejecutarOperacion(accion, codigo) {\n    setErrorOperacion("");\n    try { await accion(codigo); } catch (error) { console.error(error); setErrorOperacion("No se pudo actualizar el registro. Revisa la conexión y vuelve a intentarlo."); }\n  }
   const [sugerenciaIA, setSugerenciaIA] = useState("");
   const [cargandoIA, setCargandoIA] = useState(false);
 
@@ -41,7 +41,7 @@ export default function Staff() {
         <div className="page-heading"><span className="section-kicker">OPERACIÓN CLÍNICA</span><h1>Panel del staff</h1><p>Supervisa el flujo de atención y actualiza el avance de los estudios.</p></div>
         <div className="staff-actions">
           <button className="ai-button" onClick={handleAnalizar} disabled={cargandoIA || pacientes.length === 0}>{cargandoIA ? "Analizando..." : "✧ Analizar flujo con IA"}</button>
-          {completados.length > 0 && <button className="clear-button" onClick={limpiarCompletados}>Limpiar completados</button>}
+          {completados.length > 0 && <button className="clear-button" onClick={limpiarCompletados} disabled>Limpiar completados</button>}
         </div>
       </header>
 
@@ -54,7 +54,7 @@ export default function Staff() {
         ].map((m) => <article className="staff-metric" key={m.label}><span className={`metric-indicator ${m.tone}`} /><small>{m.label}</small><strong>{m.value}</strong><span className="metric-note">{m.note}</span></article>)}
       </section>
 
-      {sugerenciaIA && <section className="ai-insight"><div className="ai-insight-icon">✧</div><div><span className="section-kicker">ASISTENTE DE OPERACIONES</span><h2>Análisis del flujo</h2><p>{sugerenciaIA}</p><small>Orientación operativa; verifica las decisiones con el personal responsable.</small></div></section>}
+      {(errorDatos || errorOperacion) && <p role="alert" style={{ margin: "16px 0", color: "#a33", fontSize: "12px" }}>{errorDatos || errorOperacion}</p>}\n      {sugerenciaIA && <section className="ai-insight"><div className="ai-insight-icon">✧</div><div><span className="section-kicker">ASISTENTE DE OPERACIONES</span><h2>Análisis del flujo</h2><p>{sugerenciaIA}</p><small>Orientación operativa; verifica las decisiones con el personal responsable.</small></div></section>}
 
       <section className="patients-section">
         <div className="list-heading"><div><span className="section-kicker">SEGUIMIENTO</span><h2>Pacientes activos</h2></div><span>{activos.length} registro(s)</span></div>
@@ -74,7 +74,7 @@ export default function Staff() {
                   </div>
                   <div className="progress-track"><div style={{ width: `${progresoP}%` }} /></div>
                   <div className="study-tags">{p.estudios.map((e, i) => { const config = ESTADO_COLOR[e.estado] || ESTADO_COLOR.en_espera; return <span key={i} style={{ background: config.bg, color: config.text }}>{e.nombre} · {config.label}</span>; })}</div>
-                  {estudioActual && <div className="current-study"><div><small>ESTUDIO ACTUAL</small><strong>{estudioActual.nombre}</strong><span>{estudioActual.area} · aprox. {estudioActual.duracion} min</span></div><div className="study-actions">{estudioActual.estado === "en_espera" && <button className="start-button" onClick={() => iniciarEstudio(p.codigo)}>Iniciar</button>}<button className="complete-button" onClick={() => avanzarEstudio(p.codigo)}>Completar</button></div></div>}
+                  {estudioActual && <div className="current-study"><div><small>ESTUDIO ACTUAL</small><strong>{estudioActual.nombre}</strong><span>{estudioActual.area} · aprox. {estudioActual.duracion} min</span></div><div className="study-actions">{estudioActual.estado === "en_espera" && <button className="start-button" onClick={() => ejecutarOperacion(iniciarEstudio, p.codigo)}>Iniciar</button>}<button className="complete-button" onClick={() => ejecutarOperacion(avanzarEstudio, p.codigo)}>Completar</button></div></div>}
                 </article>
               );
             })}
